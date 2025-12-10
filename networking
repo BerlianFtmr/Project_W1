@@ -1,0 +1,160 @@
+openapi: 3.0.3
+info:
+  title: Shopping Cart API
+  version: 1.0.0
+  description: API untuk mengelola keranjang belanja pada sistem e-commerce.
+
+servers:
+  - url: https://api.example.com
+    description: Production Server
+  - url: http://localhost:3000
+    description: Local Development Server
+
+paths:
+
+  /cart:
+    get:
+      summary: Mendapatkan isi keranjang pengguna
+      tags:
+        - Cart
+      responses:
+        '200':
+          description: Daftar item dalam keranjang
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+    delete:
+      summary: Mengosongkan seluruh keranjang
+      tags:
+        - Cart
+      responses:
+        '200':
+          description: Keranjang berhasil dikosongkan
+        '404':
+          description: Keranjang tidak ditemukan
+
+  /cart/items:
+    post:
+      summary: Menambahkan item ke keranjang
+      tags:
+        - Cart Item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemDTO'
+      responses:
+        '201':
+          description: Item berhasil ditambahkan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+        '400':
+          description: Data tidak valid
+
+  /cart/items/{itemId}:
+    put:
+      summary: Mengubah jumlah item di keranjang
+      tags:
+        - Cart Item
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID item dalam keranjang
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItemDTO'
+      responses:
+        '200':
+          description: Jumlah item berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+        '404':
+          description: Item tidak ditemukan dalam keranjang
+
+    delete:
+      summary: Menghapus item dari keranjang
+      tags:
+        - Cart Item
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item berhasil dihapus
+        '404':
+          description: Item tidak ditemukan
+
+components:
+  schemas:
+
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total_price:
+          type: number
+          example: 150000
+
+    CartItem:
+      type: object
+      properties:
+        item_id:
+          type: string
+          example: "abc123"
+        product_id:
+          type: string
+          example: "P001"
+        name:
+          type: string
+          example: "Sepatu Sneakers"
+        price:
+          type: number
+          example: 75000
+        quantity:
+          type: integer
+          example: 2
+        subtotal:
+          type: number
+          example: 150000
+
+    AddCartItemDTO:
+      type: object
+      required:
+        - product_id
+        - quantity
+      properties:
+        product_id:
+          type: string
+        quantity:
+          type: integer
+        notes:
+          type: string
+          example: "Warna hitam ukuran 42"
+
+    UpdateCartItemDTO:
+      type: object
+      required:
+        - quantity
+      properties:
+        quantity:
+          type: integer
+          example: 3
+
