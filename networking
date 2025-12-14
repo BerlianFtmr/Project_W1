@@ -1,22 +1,19 @@
 openapi: 3.0.3
 info:
   title: Shopping Cart API
-  version: 1.0.0
-  description: API untuk mengelola keranjang belanja pada sistem e-commerce.
+  version: 1.2.0
+  description: API untuk mengelola keranjang belanja, checkout, dan pengguna pada sistem e-commerce.
 
 servers:
   - url: https://api.example.com
-    description: Production Server
   - url: http://localhost:3000
-    description: Local Development Server
 
 paths:
 
   /cart:
     get:
       summary: Mendapatkan isi keranjang pengguna
-      tags:
-        - Cart
+      tags: [Cart]
       responses:
         '200':
           description: Daftar item dalam keranjang
@@ -24,10 +21,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cart'
+
     delete:
       summary: Mengosongkan seluruh keranjang
-      tags:
-        - Cart
+      tags: [Cart]
       responses:
         '200':
           description: Keranjang berhasil dikosongkan
@@ -37,8 +34,7 @@ paths:
   /cart/items:
     post:
       summary: Menambahkan item ke keranjang
-      tags:
-        - Cart Item
+      tags: [Cart Item]
       requestBody:
         required: true
         content:
@@ -56,17 +52,15 @@ paths:
           description: Data tidak valid
 
   /cart/items/{itemId}:
-    put:
+    patch:
       summary: Mengubah jumlah item di keranjang
-      tags:
-        - Cart Item
+      tags: [Cart Item]
       parameters:
         - name: itemId
           in: path
           required: true
           schema:
             type: string
-          description: ID item dalam keranjang
       requestBody:
         required: true
         content:
@@ -81,12 +75,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartItem'
         '404':
-          description: Item tidak ditemukan dalam keranjang
+          description: Item tidak ditemukan
 
     delete:
       summary: Menghapus item dari keranjang
-      tags:
-        - Cart Item
+      tags: [Cart Item]
       parameters:
         - name: itemId
           in: path
@@ -99,9 +92,129 @@ paths:
         '404':
           description: Item tidak ditemukan
 
+  # ===========================
+  # CHECKOUT API
+  # ===========================
+  /checkout:
+    post:
+      summary: Melakukan checkout dari keranjang
+      tags: [Checkout]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutDTO'
+      responses:
+        '201':
+          description: Checkout berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Keranjang kosong atau data tidak valid
+        '404':
+          description: Keranjang tidak ditemukan
+
+  # ===========================
+  # USER API
+  # ===========================
+  /users:
+    post:
+      summary: Membuat user baru
+      tags: [User]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserDTO'
+      responses:
+        '201':
+          description: User berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    get:
+      summary: Mendapatkan daftar user
+      tags: [User]
+      responses:
+        '200':
+          description: Daftar user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+  /users/{userId}:
+    get:
+      summary: Mendapatkan detail user
+      tags: [User]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detail user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User tidak ditemukan
+
+    patch:
+      summary: Memperbarui data user
+      tags: [User]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserDTO'
+      responses:
+        '200':
+          description: User berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User tidak ditemukan
+
+    delete:
+      summary: Menghapus user
+      tags: [User]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User berhasil dihapus
+        '404':
+          description: User tidak ditemukan
+
 components:
   schemas:
 
+    # CART
     Cart:
       type: object
       properties:
@@ -137,9 +250,7 @@ components:
 
     AddCartItemDTO:
       type: object
-      required:
-        - product_id
-        - quantity
+      required: [product_id, quantity]
       properties:
         product_id:
           type: string
@@ -151,10 +262,90 @@ components:
 
     UpdateCartItemDTO:
       type: object
-      required:
-        - quantity
+      required: [quantity]
       properties:
         quantity:
           type: integer
           example: 3
 
+    # CHECKOUT
+    CheckoutDTO:
+      type: object
+      required: [payment_method, shipping_address]
+      properties:
+        payment_method:
+          type: string
+          enum: [COD, TRANSFER, SWALAYAN]
+          example: COD
+        shipping_address:
+          type: string
+          example: "Jl. Merdeka No. 10, Jakarta"
+        notes:
+          type: string
+          example: "Kirim sore hari"
+
+    Order:
+      type: object
+      properties:
+        order_id:
+          type: string
+          example: "ORD001"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total_price:
+          type: number
+          example: 150000
+        payment_method:
+          type: string
+          enum: [COD, TRANSFER, SWALAYAN]
+          example: COD
+        shipping_address:
+          type: string
+          example: "Jl. Merdeka No. 10, Jakarta"
+        status:
+          type: string
+          example: "PENDING"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-14T10:00:00Z"
+
+    # USER
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "U001"
+        name:
+          type: string
+          example: "Budi"
+        email:
+          type: string
+          example: "budi@example.com"
+        phone:
+          type: string
+          example: "08123456789"
+
+    CreateUserDTO:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+
+    UpdateUserDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
